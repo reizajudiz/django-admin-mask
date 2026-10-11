@@ -1,0 +1,671 @@
+{% extends "admin/base.html" %}
+{% load static mask_tags %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/admin_mask.css' %}">
+<script src="{% static 'admin/js/vue.global.js' %}"></script>
+<script src="{% static 'admin/js/lucide.min.js' %}"></script>
+{% endblock %}
+
+{% block branding %}
+<div id="mask-app" class="mask-branding-container">
+    <div style="display: flex; align-items: center; gap: 14px;">
+        <div class="mask-dropdown-container">
+            <!-- Tombol Master Menu (Logo) -->
+            <button type="button" @click="toggleMenu" class="mask-logo-btn" title="Master Menu">
+                <img src="{% static 'admin/img/logo-small.png' %}" alt="Logo" class="mask-logo-img">
+            </button>
+
+            <!-- Dropdown Menu Vertikal -->
+            <div v-if="isMenuOpen" class="mask-dropdown-menu">
+                <button type="button" @click="openShowAllMenu" class="mask-dropdown-item">
+                    <i data-lucide="layout-grid" class="mask-icon"></i>
+                    <span>Show All Menu</span>
+                </button>
+                <button type="button" @click="openThemeSwitcher" class="mask-dropdown-item">
+                    <i data-lucide="palette" class="mask-icon"></i>
+                    <span>Theme: <span id="theme-name">[[ themeName ]]</span></span>
+                </button>
+                <a href="{% url 'admin:password_change' %}" class="mask-dropdown-item">
+                    <i data-lucide="user-cog" class="mask-icon"></i>
+                    <span>Profile Settings</span>
+                </a>
+                <form type="button" method="post" action="{% url 'admin:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="mask-dropdown-item">
+                        <i data-lucide="log-out" class="mask-icon"></i>
+                        Log out
+                    </button>
+                </form>
+            </div>
+        </div>
+        <div class="current-menu-icon-box">
+            <i data-lucide="box" class="current-menu-icon"></i>
+        </div>
+        <!-- Teks Info Breadcrumbs Dinamis di Sebelah Master Menu -->
+        <div class="mask-breadcrumb-display" v-if="breadcrumbInfo?.current">
+            <div class="mask-bc-parent" v-if="breadcrumbInfo?.parent">[[ breadcrumbInfo?.parent ]]</div>
+            <div class="mask-bc-current">[[ breadcrumbInfo?.current ]]</div>
+        </div>
+    </div>
+
+    {% if user.is_staff %}
+        <div id="mask-date-filter" class="hide"
+            data-field="{% if mask_date_field %}{{ mask_date_field }}:{{ cl.original_queryset|mask_date_available:mask_date_field }}{% else %}{% endif %}">
+        </div>
+    {% endif %}
+
+    <!-- TOMBOL TRIGGER FILTER DI POJOK KANAN ATAS -->
+    <div class="mask-header-actions">
+        <button type="button" @click="openFilterModal" class="mask-btn mask-btn-secondary" v-if="hasFilters">
+            <i data-lucide="filter" class="mask-btn-icon"></i>
+            <span>Filter</span>
+            <span class="mask-btn-badge" v-if="activeFilterCount > 0">[[ activeFilterCount ]]</span>
+        </button>
+        <a v-if="hasAddLink !== ''" class="mask-btn mask-btn-primary" :href="hasAddLink">
+            <i data-lucide="plus-square" class="mask-btn-icon"></i>
+            <span>Add</span>
+        </a>
+    </div>
+
+    <!-- MODAL "SHOW ALL MENU" GRID INTERAKTIF -->
+    <div v-if="showModal" class="mask-modal-overlay" @click.self="closeModal">
+        <div class="mask-modal-container">
+            <!-- Header Modal dengan Search Bar -->
+            <div class="mask-modal-header">
+                <div class="mask-modal-title-area">
+                    <img src="{% static 'admin/img/logo-small.png' %}" alt="Logo" class="mask-modal-logo">
+                    <span class="mask-modal-site-title">DJANGO ADMIN MASK</span>
+                </div>
+                <div class="mask-search-wrapper">
+                    <i data-lucide="search" class="mask-search-icon"></i>
+                    <input type="text" v-model="searchQuery" placeholder="Search menu.." class="mask-search-input">
+                </div>
+                <button type="button" @click="closeModal" class="mask-close-btn" title="Close">✕</button>
+            </div>
+
+            <!-- Konten Grid Menu yang Diekstrak dari DOM -->
+            <div class="mask-modal-body">
+                <div class="mask-menu-section">
+                    <h3 class="mask-section-title">Menus</h3>
+
+                    <div class="mask-grid-container">
+                        <a v-for="item in filteredMenu" :key="item.url" :href="item.url" class="mask-grid-item">
+                            <div class="mask-grid-icon-box">
+                                <i data-lucide="box" class="mask-grid-icon"></i>
+                            </div>
+                            <span class="mask-grid-label">[[ item.name ]]</span>
+                        </a>
+                    </div>
+                    <p v-if="filteredMenu.length === 0" class="mask-no-result">Menu tidak ditemukan...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- MODAL POPUP FILTER KUSTOM (VUE VERSION) -->
+    <div v-if="showFilterModal" class="mask-modal-overlay" @click.self="closeFilterModal">
+        <div class="mask-modal-container mask-filter-container">
+            <div class="mask-modal-header">
+                <div class="mask-modal-title-area">
+                    <i data-lucide="filter" class="mask-modal-logo" style="color: var(--mask-accent-color);"></i>
+                    <span class="mask-modal-site-title">LITTLE FILTER PANEL</span>
+                </div>
+                <button type="button" @click="closeFilterModal" class="mask-close-btn" title="Close">✕</button>
+            </div>
+            <div class="mask-modal-body filter-section">
+                <!-- 1. Search Bar Filter -->
+                <div class="mask-filter-group" v-if="filterConfig.hasSearch">
+                    <label class="mask-filter-label">Search</label>
+                    <input type="text" v-model="filterForm.q" class="mask-search-input search-text" style="padding-left: 10px !important; width: calc(100% - 24px);" placeholder="Cari data...">
+                </div>
+
+                <!-- 2. Date Hierarchy / Mask Date Filter -->
+                <div class="mask-filter-group" v-if="filterConfig.hasDateHierarchy">
+                    <label class="mask-filter-label">Filter By Date ([[ filterConfig.dateField ]])</label>
+                    <div class="mask-date-selects">
+                        <select v-model="filterForm.dmyYear" @change="onYearChange" class="mask-select">
+                            <option value="">-- Year --</option>
+                            <option v-for="y in filterConfig.years" :value="y">[[ y ]]</option>
+                        </select>
+                        <select v-model="filterForm.dmyMonth" @change="onMonthChange" :disabled="!filterForm.dmyYear" class="mask-select">
+                            <option value="">-- Month --</option>
+                            <option v-for="m in 12" :value="m">[[ m ]]</option>
+                        </select>
+                        <select v-model="filterForm.dmyDay" :disabled="!filterForm.dmyMonth" class="mask-select">
+                            <option value="">-- Day --</option>
+                            <option v-for="d in maxDaysInMonth" :value="d">[[ d ]]</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 3. Choice Filters dari Django Sidebar -->
+                <div class="mask-filter-group" v-for="choice in filterConfig.choices" :key="choice.title">
+                    <label class="mask-filter-label">[[ choice.title ]]</label>
+                    <div class="mask-choice-options">
+                        <button
+                            type="button"
+                            v-for="opt in choice.nodes"
+                            :key="opt.key"
+                            @click="selectChoice(choice.title, opt.key)"
+                            :class="[
+                                'mask-choice-btn',
+                                { 'choice-selected': choice.selectedKey === opt.key }
+                            ]"
+                        >
+                            [[ opt.title ]]
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="mask-modal-footer" style="padding: 16px 24px; background: #0f172a; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                <button type="button" @click="closeFilterModal" class="mask-btn mask-btn-secondary">Cancel</button>
+                <a href="?" class="mask-btn mask-btn-warning">Reset</a>
+                <button type="button" @click="performFilter" class="mask-btn mask-btn-primary">Filter</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+    createApp({
+        delimiters: ['[[', ']]'],
+        setup() {
+            const isMenuOpen = ref(false);
+            const showModal = ref(false);
+            const showFilterModal = ref(false);
+            const searchQuery = ref('');
+            const extractedMenu = ref([]);
+            const breadcrumbInfo = ref({ parent: '', current: '' });
+            const themeName = ref('');
+            const hasAddLink = ref('');
+
+            // Konfigurasi State Filter
+            const hasFilters = ref(false);
+            const activeFilterCount = ref(0);
+            const filterConfig = ref({
+                hasSearch: false,
+                hasDateHierarchy: false,
+                dateField: '',
+                years: [],
+                choices: []
+            });
+            const filterForm = ref({
+                q: '',
+                dmyYear: '',
+                dmyMonth: '',
+                dmyDay: '',
+                selectedChoices: {}
+            });
+
+            const FILTER_IGNORED_PARAMS = new Set([
+                'p', 'q', 'ndh', 'mask_date',
+                'o', 'e', '_popup', '_to_field',
+                '_facets'
+            ]);
+
+            // Menghitung selisih parameter sambil mempertahankan
+            // jumlah kemunculan key/value yang sama.
+            const getAddedParams = (baseParams, optionParams) => {
+                const remaining = new Map();
+
+                for (const [key, value] of baseParams.entries()) {
+                    const signature = JSON.stringify([key, value]);
+                    remaining.set(
+                        signature,
+                        (remaining.get(signature) || 0) + 1
+                    );
+                }
+
+                const added = [];
+
+                for (const [key, value] of optionParams.entries()) {
+                    if (FILTER_IGNORED_PARAMS.has(key)) continue;
+
+                    const signature = JSON.stringify([key, value]);
+                    const count = remaining.get(signature) || 0;
+
+                    if (count > 0) {
+                        remaining.set(signature, count - 1);
+                    } else {
+                        added.push({ key, value });
+                    }
+                }
+
+                return added;
+            };
+
+            const updateActiveFilterCount = () => {
+                const params = new URLSearchParams(window.location.search);
+
+                const searchActive = Boolean((params.get('q') || '').trim());
+                const dateActive = Boolean((params.get('mask_date') || '').trim());
+
+                const choiceCount = filterConfig.value.choices.filter(choice => {
+                    const selectedNode = choice.nodes.find(
+                        node => node.key === choice.selectedKey
+                    );
+
+                    return selectedNode && !selectedNode.isAll;
+                }).length;
+
+                activeFilterCount.value =
+                    Number(searchActive) +
+                    Number(dateActive) +
+                    choiceCount;
+            };
+
+            const initFilterData = async () => {
+                const urlParams = new URLSearchParams(window.location.search);
+
+                // Cek Searchbar Django
+                if (document.getElementById('searchbar')) {
+                    filterConfig.value.hasSearch = true;
+                    hasFilters.value = true;
+                    filterForm.value.q = urlParams.get('q') || '';
+                }
+
+                // Cek Mask Date Filter dari element ter-render
+                const dateFilterEl = document.getElementById('mask-date-filter');
+                if (dateFilterEl && dateFilterEl.dataset.field) {
+                    const dhData = dateFilterEl.dataset.field; // format: field:start:end atau NULL
+                    if (dhData && dhData !== '') {
+                        filterConfig.value.hasDateHierarchy = true;
+                        hasFilters.value = true;
+                        const parts = dhData.split(':');
+                        filterConfig.value.dateField = parts[0];
+
+                        if (parts.length >= 3 && parts[1] !== 'NULL') {
+                            const startYear = parseInt(parts[1].split('-')[2]);
+                            const endYear = parseInt(parts[2].split('-')[2]);
+                            let yrs = [];
+                            for (let i = startYear; i <= endYear; i++) yrs.push(i);
+                            filterConfig.value.years = yrs;
+                        }
+
+                        // Parse parameter mask_date yang sedang aktif (format: YYYY-MM-DD atau YYYY-MM atau YYYY)
+                        const maskDateVal = urlParams.get('mask_date');
+                        if (maskDateVal) {
+                            const dateParts = maskDateVal.split('-');
+                            filterForm.value.dmyYear = dateParts[0] ? parseInt(dateParts[0]) : '';
+                            filterForm.value.dmyMonth = dateParts[1] ? parseInt(dateParts[1]) : '';
+                            filterForm.value.dmyDay = dateParts[2] ? parseInt(dateParts[2]) : '';
+                        }
+                    }
+                }
+
+                // 3. Cek Choice Filters secara presisi & aman (Anti-Bocor & Anti-Nyasar)
+                const cf = document.getElementById('changelist-filter');
+
+                if (cf) {
+                    const detailsNodes = cf.querySelectorAll('details');
+
+                    if (detailsNodes.length > 0) {
+                        hasFilters.value = true;
+                    }
+
+                    // Hindari data ganda jika fungsi dipanggil kembali.
+                    filterConfig.value.choices = [];
+
+                    detailsNodes.forEach(details => {
+                        const summary = details.querySelector('summary');
+                        const listItems = Array.from(
+                            details.querySelectorAll('ul li')
+                        );
+
+                        if (!summary || !listItems.length) return;
+
+                        const choicesTitle = summary.textContent.trim();
+
+                        const items = listItems
+                            .map((li, index) => {
+                                const link = li.querySelector('a');
+                                if (!link) return null;
+
+                                const url = new URL(
+                                    link.href,
+                                    window.location.origin
+                                );
+
+                                return {
+                                    index,
+                                    title: link.textContent.trim(),
+                                    url,
+                                    selected: li.classList.contains('selected')
+                                };
+                            })
+                            .filter(Boolean);
+
+                        if (!items.length) return;
+
+                        // Django Admin menempatkan All pada opsi pertama.
+                        const allOption = items[0];
+
+                        const nodes = items.map(item => {
+                            const params = getAddedParams(
+                                allOption.url.searchParams,
+                                item.url.searchParams
+                            );
+
+                            return {
+                                key: `${choicesTitle}:${item.index}`,
+                                title: item.title,
+                                params,
+                                isAll: item.index === allOption.index,
+                                selected: item.selected
+                            };
+                        });
+
+                        // Utamakan state selected dari HTML Django.
+                        // All menjadi fallback hanya jika tidak ada pilihan
+                        // yang ditandai selected.
+                        let selectedNode = nodes.find(node => node.selected);
+
+                        if (!selectedNode) {
+                            selectedNode = nodes.find(node => node.isAll);
+                        }
+
+                        filterConfig.value.choices.push({
+                            title: choicesTitle,
+                            nodes,
+                            selectedKey: selectedNode?.key ?? null
+                        });
+                    });
+                }
+                updateActiveFilterCount();
+                setTimeout(() => {
+                    lucide.createIcons();
+                }, 50)
+            };
+
+            const maxDaysInMonth = computed(() => {
+                if (!filterForm.value.dmyYear || !filterForm.value.dmyMonth) return 31;
+                return new Date(filterForm.value.dmyYear, filterForm.value.dmyMonth, 0).getDate();
+            });
+
+            const onYearChange = () => {
+                if (!filterForm.value.dmyYear) {
+                    filterForm.value.dmyMonth = '';
+                    filterForm.value.dmyDay = '';
+                }
+            };
+
+            const onMonthChange = () => {
+                if (!filterForm.value.dmyMonth) {
+                    filterForm.value.dmyDay = '';
+                }
+            };
+
+            const selectChoice = (choiceTitle, key) => {
+                const choice = filterConfig.value.choices.find(
+                    item => item.title === choiceTitle
+                );
+
+                if (choice) {
+                    choice.selectedKey = key;
+                }
+            };
+
+            const openFilterModal = () => {
+                showFilterModal.value = true;
+                nextTick(() => { lucide.createIcons(); });
+            };
+
+            const closeFilterModal = () => {
+                showFilterModal.value = false;
+            };
+
+            const performFilter = () => {
+                const params = new URLSearchParams(
+                    window.location.search
+                );
+
+                // Search
+                params.delete('q');
+                if (filterConfig.value.hasSearch && filterForm.value.q) {
+                    params.set('q', filterForm.value.q);
+                }
+
+                // Date filter
+                params.delete('mask_date');
+                if (
+                    filterConfig.value.hasDateHierarchy &&
+                    filterForm.value.dmyYear
+                ) {
+                    const parts = [filterForm.value.dmyYear];
+
+                    if (filterForm.value.dmyMonth) {
+                        parts.push(filterForm.value.dmyMonth);
+
+                        if (filterForm.value.dmyDay) {
+                            parts.push(filterForm.value.dmyDay);
+                        }
+                    }
+
+                    params.set('mask_date', parts.join('-'));
+                }
+
+                // Ganti parameter yang dimiliki oleh setiap choice group.
+                filterConfig.value.choices.forEach(choice => {
+                    const ownedKeys = new Set(
+                        choice.nodes.flatMap(node =>
+                            node.params.map(param => param.key)
+                        )
+                    );
+
+                    // Hapus semua nilai lama untuk key milik grup ini.
+                    ownedKeys.forEach(key => params.delete(key));
+
+                    const selectedNode = choice.nodes.find(
+                        node => node.key === choice.selectedKey
+                    );
+
+                    if (!selectedNode || selectedNode.isAll) return;
+
+                    selectedNode.params.forEach(({ key, value }) => {
+                        params.append(key, value);
+                    });
+                });
+
+                const urlParams = new URLSearchParams(
+                    window.location.search
+                );
+
+                ['_popup', '_to_field'].forEach(key => {
+                    params.delete(key);
+
+                    urlParams.getAll(key).forEach(value => {
+                        params.append(key, value);
+                    });
+                });
+
+                const query = params.toString();
+
+                window.location.assign(
+                    window.location.pathname +
+                    (query ? `?${query}` : '')
+                );
+            };
+
+            const waitForElement = (selector, root = document) => {
+                return new Promise(resolve => {
+                    const existing = root.querySelector(selector);
+
+                    if (existing) {
+                        resolve(existing);
+                        return;
+                    }
+
+                    const observer = new MutationObserver(() => {
+                        const element = root.querySelector(selector);
+
+                        if (element) {
+                            observer.disconnect();
+                            resolve(element);
+                        }
+                    });
+
+                    observer.observe(root, {
+                        childList: true,
+                        subtree: true
+                    });
+                });
+            };
+
+            // Fungsi mengekstrak menu asli yang sudah dirender Django di halaman
+            const scrapeDjangoMenu = () => {
+                const menuItems = [];
+                let modLinks = []
+                if (location.pathname.endsWith('/admin/') || location.pathname.endsWith('/admin')) {
+                  modLinks = document.querySelectorAll('#content #content-main .module table tbody tr th a');
+                } else {
+                  modLinks = document.querySelectorAll('#nav-sidebar .module table tbody tr th a')
+                }
+                modLinks.forEach(link => {
+                  const name = link.textContent.trim()
+                  const url = link.href
+                  menuItems.push({ name, url })
+                })
+                extractedMenu.value = menuItems;
+            };
+
+            // 2. Fungsi Mengambil Info dari Breadcrumbs Asli Django
+            const extractBreadcrumbs = async () => {
+                const bcElement = await waitForElement('.breadcrumbs')
+
+                if (!bcElement) {
+                    breadcrumbInfo.value = {
+                        parent: '',
+                        current: ''
+                    };
+                    return;
+                }
+
+                const bcTexts = bcElement.textContent
+                    .split('\n')
+                    .map(text => text.replace('›', '').trim())
+                    .filter(Boolean);
+
+                const length = bcTexts.length;
+
+                breadcrumbInfo.value = {
+                    parent: length >= 2 ? bcTexts[length - 2] : '',
+                    current: length >= 1 ? bcTexts[length - 1] : ''
+                };
+            };
+
+            const toggleMenu = () => {
+                isMenuOpen.value = !isMenuOpen.value;
+                if (isMenuOpen.value) {
+                    nextTick(() => { lucide.createIcons(); });
+                }
+            };
+
+            const openShowAllMenu = () => {
+                isMenuOpen.value = false;
+                scrapeDjangoMenu(); // Ekstrak saat modal dibuka
+                showModal.value = true;
+                nextTick(() => { lucide.createIcons(); });
+            };
+
+            const closeModal = () => {
+                showModal.value = false;
+            };
+
+            const openThemeSwitcher = () => {
+                const themeToggle = document.querySelector('.theme-toggle');
+                if (!themeToggle) {
+                    console.warn('Tombol theme switcher tidak ditemukan.');
+                    return;
+                }
+                themeToggle.click();
+                getThemeName()
+            };
+
+            // Pencarian Real-time
+            const filteredMenu = computed(() => {
+                if (!searchQuery.value) return extractedMenu.value;
+                const q = searchQuery.value.toLowerCase();
+                return extractedMenu.value.filter(item => item.name.toLowerCase().includes(q));
+            });
+
+            const getThemeName = () => {
+                nextTick(() => {
+                    const savedTheme = localStorage.getItem('theme');
+                    const theme = (savedTheme || '').toLowerCase();
+
+                    if (theme === 'dark') {
+                        themeName.value = 'Dark';
+                    } else if (theme === 'light') {
+                        themeName.value = 'Light';
+                    } else {
+                        themeName.value = 'System';
+                    }
+                });
+            };
+
+            watch(searchQuery, () => {
+                nextTick(() => {
+                    lucide.createIcons();
+                });
+            });
+
+            const prepareFilterData = async () => {
+                await waitForElement('#changelist-filter');
+                setTimeout(() => {
+                  initFilterData();
+                }, 50)
+            }
+            const prepareIcons = async () => {
+                const [currentMenuIconBox] = await Promise.all([
+                    waitForElement('.current-menu-icon-box'),
+                ])
+                lucide.createIcons();
+            }
+            const prepareButtons = async () => {
+                await waitForElement('.object-tools');
+                const addLink = document.querySelector('#content .object-tools .addlink')
+                if (addLink) {
+                    hasAddLink.value = addLink.href;
+                }
+                lucide.createIcons();
+            }
+            onMounted(() => {
+                getThemeName();
+                extractBreadcrumbs();
+                prepareFilterData();
+                prepareButtons();
+                prepareIcons();
+            });
+
+            return {
+                isMenuOpen,
+                showModal,
+                showFilterModal,
+                searchQuery,
+                extractedMenu,
+                breadcrumbInfo,
+                themeName,
+                hasFilters,
+                hasAddLink,
+                activeFilterCount,
+                filterConfig,
+                filterForm,
+                filteredMenu,
+                maxDaysInMonth,
+                onYearChange,
+                onMonthChange,
+                selectChoice,
+                openFilterModal,
+                closeFilterModal,
+                performFilter,
+                toggleMenu,
+                openShowAllMenu,
+                closeModal,
+                openThemeSwitcher
+            };
+        }
+    }).mount('#mask-app');
+</script>
+{% endblock %}

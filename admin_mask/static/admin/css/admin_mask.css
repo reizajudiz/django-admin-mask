@@ -1,0 +1,570 @@
+:root {
+    --mask-primary-bg: #0f172a;
+    --mask-accent-color: #38bdf8;
+    --mask-btn-bg: rgba(255, 255, 255, 0.08);
+    --mask-btn-hover: rgba(255, 255, 255, 0.15);
+    --mask-secondary-text: #94a3b8;
+    --mask-primary-text: #d6ebfb;
+    --mask-disabled-text: #7c8db5;
+    --mask-disabled-bg: rgba(255, 255, 255, 0.04);
+    --mask-disbaled-border-color: rgba(255, 255, 255, 0.1);
+    --mask-panel-bg: #1e293b;
+    --mask-warning-color: #fbbf24;
+    --mask-error-color: #ef4444;
+    --mask-success-color: #16a34a;
+    --mask-info-color: #60a5fa;
+    --mask-secondary-btn-bg: rgba(255, 255, 255, 0.08);
+    --mask-secondary-btn-color: #cbd5e1;
+}
+
+.hide {
+    display: none !important;
+}
+
+#content-start #content h1:first-child, #content-start #content .object-tools, #content-start #content #changelist #changelist-filter,
+    #content-start #content #changelist #toolbar {
+
+    display: none;
+}
+
+#header {
+    background: var(--mask-primary-bg) !important;
+    color: #ffffff !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+    position: fixed;
+    top: 0;
+    width: calc(100% - 40px);
+    z-index: 2;
+}
+
+#main {
+    margin-top: 60px;
+}
+#header #branding {
+    float: none !important;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.mask-branding-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.mask-dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* Tombol Master Logo */
+.mask-logo-btn {
+    background: var(--mask-btn-bg);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.mask-logo-btn:hover {
+    background: var(--mask-btn-hover);
+}
+
+.mask-logo-img {
+    height: 35px;
+    width: 35px;
+    object-fit: contain;
+}
+
+/* Kotak Menu Dropdown Vertikal */
+.mask-dropdown-menu {
+    position: absolute;
+    top: 55px;
+    left: 0;
+    background: var(--mask-panel-bg);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    border-radius: 10px;
+    width: 210px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeInDown 0.15s ease-in-out;
+}
+
+/* Item Menu Terpisah di dalam Dropdown */
+.mask-dropdown-item {
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: #e2e8f0 !important;
+    text-decoration: none !important;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    transition: background 0.15s, color 0.15s;
+}
+
+.mask-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.mask-dropdown-item:hover {
+    background: #334155;
+    color: #ffffff !important;
+}
+
+.mask-icon {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+    color: var(--mask-accent-color);
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* MANIPULASI DJANGO */
+/* Sembunyikan sidebar bawaan Django Admin agar bersih total (Mask Mode) */
+#nav-sidebar,
+.toggle-nav,
+#toggle-nav-sidebar,
+#content-related {
+    display: none !important;
+}
+
+/* Lebarkan area konten utama agar mengambil alih layar secara penuh */
+#content, #content-start {
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    max-width: 100% !important;
+}
+
+#user-tools {
+    display: none;
+}
+
+/* Sembunyikan breadcrumbs bawaan Django Admin secara total */
+div.breadcrumbs {
+    display: none !important;
+}
+
+.mask-no-result {
+    color: #94a3b8;
+    text-align: center;
+    padding: 40px;
+    font-size: 14px;
+}
+
+/* ==========================================================
+   STYLING MODAL "SHOW ALL MENU" & GRID INTERAKTIF
+   ========================================================== */
+
+/* Overlay Latar Belakang Gelap dengan Efek Blur */
+.mask-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(6px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeInModal 0.2s ease-out;
+}
+
+/* Kontainer Utama Modal */
+.mask-modal-container {
+    background: var(--mask-panel-bg);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    width: 85%;
+    max-width: 950px;
+    height: 82vh;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header Modal (Logo, Judul, & Search Bar) */
+.mask-modal-header {
+    background: #0f172a;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mask-modal-title-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mask-modal-logo {
+    height: 30px;
+    width: 30px;
+    object-fit: contain;
+}
+
+.mask-modal-site-title {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+}
+
+/* Kotak Search Bar */
+.mask-search-wrapper {
+    position: relative;
+    width: 380px;
+}
+
+.mask-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+}
+
+.mask-search-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 8px 12px 8px 38px;
+    border-radius: 8px;
+    font-size: 13px;
+    outline: none;
+    transition: all 0.2s;
+    padding-left: 35px !important;
+}
+
+.mask-search-input:focus {
+    border-color: var(--mask-accent-color);
+}
+
+.mask-close-btn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.mask-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+/* Body & Grid Kotak Menu */
+.mask-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.mask-section-title {
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 8px;
+}
+
+.mask-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+    gap: 16px;
+}
+
+.mask-grid-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+}
+
+.mask-grid-item:hover {
+    background: rgba(56, 189, 248, 0.1);
+    border-color: var(--mask-accent-color);
+    transform: translateY(-2px);
+}
+
+.mask-grid-icon-box {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mask-grid-icon {
+    width: 100%;
+    height: 100%;
+    color: var(--mask-accent-color);
+}
+
+.current-menu-icon-box {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.current-menu-icon {
+    width: 100%;
+    height: 100%;
+    color: var(--mask-accent-color);
+}
+.mask-grid-label {
+    color: #e2e8f0;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.mask-no-result {
+    color: #94a3b8;
+    text-align: center;
+    padding: 40px;
+    font-size: 14px;
+}
+
+@keyframes fadeInModal {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+
+/* Styling Tampilan Breadcrumbs Kustom di Samping Logo Master */
+.mask-branding-container {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.mask-breadcrumb-display {
+    display: grid;
+    align-items: center;
+    gap: 3px;
+    font-weight: 500;
+    max-width: 400px;
+}
+
+.mask-bc-parent {
+    color: var(--mask-secondary-text);
+    font-size: 13px;
+}
+
+.mask-bc-current {
+    color: var(--mask-primary-text);
+    font-size: 20px;
+    font-weight: 600;
+    display: block;
+    overflow: hidden;
+    width: 100%;
+    text-wrap: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Posisi Tombol Filter di Pojok Kanan Atas Header */
+.mask-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.mask-filter-trigger-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mask-filter-trigger-btn:hover {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: var(--mask-accent-color);
+    color: #ffffff;
+}
+
+.mask-btn-icon {
+    width: 15px;
+    height: 15px;
+    color: var(--mask-accent-color);
+}
+.mask-btn-primary .mask-btn-icon {
+    color: var(--mask-primary-bg)
+}
+
+.mask-btn-badge {
+    background: var(--mask-accent-color);
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+/* Styling Konten Modal Filter */
+.mask-filter-container {
+    max-width: 550px !important;
+    height: auto !important;
+    max-height: 80vh !important;
+}
+
+.mask-filter-group {
+    margin-bottom: 20px;
+}
+
+.mask-filter-label {
+    display: block;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.mask-date-selects {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+}
+
+.mask-select {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 13px;
+    outline: none;
+}
+
+.mask-select option {
+    background: var(--mask-panel-bg);
+    color: #ffffff;
+}
+
+.mask-select:disabled {
+    background: var(--mask-disabled-bg);
+    border-color: var(--mask-disabled-border);
+    color: var(--mask-disabled-text);
+}
+
+.mask-choice-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.mask-choice-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--mask-secondary-btn-color);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mask-choice-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.mask-choice-btn.choice-selected {
+    background: var(--mask-accent-color);
+    color: #0f172a;
+    font-weight: 600;
+    border-color: var(--mask-accent-color);
+}
+
+.mask-btn {
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 15px;
+    cursor: pointer;
+    display: inline-flex;
+    gap:5px
+}
+.mask-btn-primary {
+    background: var(--mask-accent-color);
+    color: #0f172a !important;
+}
+
+.mask-btn-secondary {
+    background: var(--mask-secondary-btn-bg);
+    color: var(--mask-secondary-btn-color);
+}
+.mask-btn-warning {
+    background: var(--mask-warning-color);
+    color: #1c1c1c !important;
+}
+
+.mask-btn-primary:hover {
+    filter: brightness(1.15)
+}
+
+.mask-btn-secondary:hover {
+    filter: brightness(1.15)
+}
+
+.mask-btn-warning:hover {
+    filter: brightness(1.15)
+}
