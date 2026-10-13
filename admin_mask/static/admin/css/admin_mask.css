@@ -1,6 +1,4 @@
 :root {
-    --mask-primary-bg: #0f172a;
-    --mask-accent-color: #38bdf8;
     --mask-btn-bg: rgba(255, 255, 255, 0.08);
     --mask-btn-hover: rgba(255, 255, 255, 0.15);
     --mask-secondary-text: #94a3b8;
@@ -13,8 +11,20 @@
     --mask-error-color: #ef4444;
     --mask-success-color: #16a34a;
     --mask-info-color: #60a5fa;
-    --mask-secondary-btn-bg: rgba(255, 255, 255, 0.08);
-    --mask-secondary-btn-color: #cbd5e1;
+    --mask-highlight-bg: rgb(26, 34, 61) !important;
+
+    /* DJANGO */
+    --header-bg: #0f172a;
+    --secondary: #45546c;
+    --body-bg: #121212;
+    --body-quiet-color: #d0d0d0;
+    --selected-row: #161d36 !important;
+    --darkened-bg: rgb(57, 60, 69) !important;
+    --hairline-color: #759be1 !important;
+    --default-button-bg: #38bdf8 !important;
+    --button-fg: #fff !important;
+    --button-bg: rgba(255, 255, 255, 0.08);
+    --button-hover-bg: #5f6263 !important;
 }
 
 .hide {
@@ -27,23 +37,91 @@
     display: none;
 }
 
+thead th {
+    background: var(--mask-highlight-bg) !important;
+}
+
+fieldset .fieldset-heading, fieldset .inline-heading, :not(.inline-related) .collapse summary {
+    background: var(--mask-highlight-bg) !important;
+}
+
+.submit-row {
+    position: fixed;
+    bottom: -20px;
+    width: calc(100% - 110px);
+    background: var(--mask-highlight-bg) !important;
+}
+
+form#changelist-form .paginator {
+    position: fixed;
+    width: calc(100% - 80px);
+    bottom: 0px;
+    background: var(--mask-highlight-bg);
+}
+
+#content-main form {
+    margin-bottom: 80px;
+}
+
+
+@media (max-width: 767px) {
+  .submit-row {
+      width: calc(100% - 50px);
+  }
+  form#changelist-form .paginator {
+      width: calc(100% - 30px);
+  }
+  .submit-row input, .submit-row input.default, .submit-row a {
+      display: block !important;
+  }
+  #content-main form {
+      margin-bottom: 190px;
+  }
+
+}
+
+form#changelist-form .paginator a, form#changelist-form .paginator .this-page {
+    border-radius: 3px;
+    padding: 5px 10px;
+}
+
+form#changelist-form .paginator .this-page {
+    background: var(--body-bg) !important;
+    color: var(--body-quiet-color) !important;
+}
+
+form#changelist-form .paginator a {
+    background: var(--default-button-bg) !important;
+    color: var(--button-fg) !important;
+}
+
+form#changelist-form .paginator a:hover {
+    filter: brightness(1.15);
+}
+
 #header {
-    background: var(--mask-primary-bg) !important;
     color: #ffffff !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 8px 20px;
+    padding: 8px 40px !important;
     display: flex;
     justify-content: space-between;
     align-items: center;
     height: 60px;
     position: fixed;
     top: 0;
-    width: calc(100% - 40px);
+    width: calc(100% - 80px);
     z-index: 2;
 }
-
+.login #header {
+    position: unset !important;
+}
+.login .submit-row {
+    position: unset !important;
+    width: 100% !important;
+    background: inherit !important;
+}
 #main {
-    margin-top: 60px;
+    margin-top: 70px;
 }
 #header #branding {
     float: none !important;
@@ -136,7 +214,7 @@
     width: 16px;
     height: 16px;
     stroke-width: 2;
-    color: var(--mask-accent-color);
+    color: var(--default-button-bg);
 }
 
 @keyframes fadeInDown {
@@ -256,8 +334,8 @@ div.breadcrumbs {
 
 .mask-search-input {
     width: 100%;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--darkened-bg);
+    border: 1px solid var(--harline-color);
     padding: 8px 12px 8px 38px;
     border-radius: 8px;
     font-size: 13px;
@@ -267,7 +345,7 @@ div.breadcrumbs {
 }
 
 .mask-search-input:focus {
-    border-color: var(--mask-accent-color);
+    border-color: var(--default-button-bg);
 }
 
 .mask-close-btn {
@@ -326,7 +404,7 @@ div.breadcrumbs {
 
 .mask-grid-item:hover {
     background: rgba(56, 189, 248, 0.1);
-    border-color: var(--mask-accent-color);
+    border-color: var(--default-button-bg);
     transform: translateY(-2px);
 }
 
@@ -341,7 +419,7 @@ div.breadcrumbs {
 .mask-grid-icon {
     width: 100%;
     height: 100%;
-    color: var(--mask-accent-color);
+    color: var(--default-button-bg);
 }
 
 .current-menu-icon-box {
@@ -355,7 +433,7 @@ div.breadcrumbs {
 .current-menu-icon {
     width: 100%;
     height: 100%;
-    color: var(--mask-accent-color);
+    color: var(--default-button-bg);
 }
 .mask-grid-label {
     color: #e2e8f0;
@@ -433,21 +511,22 @@ div.breadcrumbs {
 
 .mask-filter-trigger-btn:hover {
     background: rgba(56, 189, 248, 0.15);
-    border-color: var(--mask-accent-color);
+    border-color: var(--default-button-bg);
     color: #ffffff;
 }
 
 .mask-btn-icon {
     width: 15px;
     height: 15px;
-    color: var(--mask-accent-color);
+    color: var(--default-button-bg);
 }
+
 .mask-btn-primary .mask-btn-icon {
-    color: var(--mask-primary-bg)
+    color: var(--default-bg);
 }
 
 .mask-btn-badge {
-    background: var(--mask-accent-color);
+    background: var(--default-button-bg);
     color: #0f172a;
     font-size: 12px;
     font-weight: 700;
@@ -513,7 +592,7 @@ div.breadcrumbs {
 .mask-choice-btn {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--mask-secondary-btn-color);
+    color: var(--button-fg);
     padding: 6px 12px;
     border-radius: 6px;
     font-size: 12px;
@@ -527,10 +606,10 @@ div.breadcrumbs {
 }
 
 .mask-choice-btn.choice-selected {
-    background: var(--mask-accent-color);
+    background: var(--default-button-bg);
     color: #0f172a;
     font-weight: 600;
-    border-color: var(--mask-accent-color);
+    border-color: var(--default-button-bg);
 }
 
 .mask-btn {
@@ -544,13 +623,13 @@ div.breadcrumbs {
     gap:5px
 }
 .mask-btn-primary {
-    background: var(--mask-accent-color);
-    color: #0f172a !important;
+    background: var(--default-button-bg);
+    color: var(--button-fg);
 }
 
 .mask-btn-secondary {
-    background: var(--mask-secondary-btn-bg);
-    color: var(--mask-secondary-btn-color);
+    background: var(--button-bg);
+    color: var(--button-fg);
 }
 .mask-btn-warning {
     background: var(--mask-warning-color);
@@ -558,13 +637,105 @@ div.breadcrumbs {
 }
 
 .mask-btn-primary:hover {
-    filter: brightness(1.15)
+    filter: brightness(1.15);
 }
 
 .mask-btn-secondary:hover {
-    filter: brightness(1.15)
+    filter: brightness(1.5);
 }
 
 .mask-btn-warning:hover {
-    filter: brightness(1.15)
+    filter: brightness(1.15);
+}
+
+.button.default:hover, input[type="submit"].default:hover, .submit-row input.default:hover {
+    filter: brightness(1.15);
+    background: var(--default-button-bg) !important;
+    color: var(--button-fg) !important;
+}
+
+/* actions */
+/* Sembunyikan hanya tampilannya, bukan elemen Django-nya. */
+#changelist-form .actions {
+    display: none !important;
+}
+
+.mask-action-popup {
+    position: fixed;
+    z-index: 1100;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    width: min(550px, calc(100vw - 32px));
+    box-sizing: border-box;
+    padding: 10px;
+
+    color: var(--body-fg, #f8fafc);
+    background: var(--body-bg);
+    border: 0.1px solid var(--hairline-color);
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgb(0 0 0 / 24%);
+}
+
+.mask-action-popup__summary {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 10px;
+    justify-content: space-between;
+}
+
+.mask-action-popup__count {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.mask-action-popup__badge {
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--selected-row);
+    font-size: 11px;
+}
+
+.mask-action-popup__controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mask-action-popup__label {
+    flex-shrink: 0;
+    font-size: 13px;
+}
+
+.mask-action-popup__select {
+    flex: 1;
+    min-width: 0;
+    padding: 10px;
+    color: inherit;
+    background: var(--darkened-bg);
+    border: 1px solid var(--hairline-color);
+    border-radius: 7px;
+}
+
+.mask-action-popup__footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+@media (max-width: 540px) {
+    .mask-action-popup {
+        bottom: 10px;
+        padding: 8px;
+    }
+
+    .mask-action-popup__controls {
+        flex-wrap: wrap;
+    }
+    .mask-action-popup__select {
+        flex-basis: 60%;
+    }
 }

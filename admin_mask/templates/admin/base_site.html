@@ -10,7 +10,10 @@
 
 {% block branding %}
 <div id="mask-app" class="mask-branding-container">
-    <div style="display: flex; align-items: center; gap: 14px;">
+    <div v-if="isLogin">
+        <img src="{% static 'admin/img/logo-small.png' %}" alt="Logo" class="mask-logo-img">
+    </div>
+    <div style="display: flex; align-items: center; gap: 14px;" v-else :data-islogin="isLogin">
         <div class="mask-dropdown-container">
             <!-- Tombol Master Menu (Logo) -->
             <button type="button" @click="toggleMenu" class="mask-logo-btn" title="Master Menu">
@@ -40,7 +43,7 @@
                 </form>
             </div>
         </div>
-        <div class="current-menu-icon-box">
+        <div class="current-menu-icon-box" v-if="breadcrumbInfo?.current">
             <i data-lucide="box" class="current-menu-icon"></i>
         </div>
         <!-- Teks Info Breadcrumbs Dinamis di Sebelah Master Menu -->
@@ -103,6 +106,74 @@
             </div>
         </div>
     </div>
+
+    <div
+        v-if="showActionPopup"
+        class="mask-action-popup"
+    >
+        <div class="mask-action-popup__summary">
+            <label
+                for="mask-action-select"
+                class="mask-action-popup__label"
+            >
+                Action:
+            </label>
+            <span class="mask-action-popup__count">
+                [[ selectedSummary || 'Items selected' ]]
+                <span
+                    v-if="isAcrossSelected"
+                    class="mask-action-popup__badge"
+                >
+                    All datas
+                </span>
+            </span>
+        </div>
+
+        <div class="mask-action-popup__controls">
+            <select
+                id="mask-action-select"
+                :value="selectedAction"
+                @change="changeAction($event.target.value)"
+                class="mask-action-popup__select"
+            >
+                <option
+                    v-for="option in actionOptions"
+                    :key="option.value"
+                    :value="option.value"
+                >
+                    [[ option.label ]]
+                </option>
+            </select>
+
+            <button
+                type="button"
+                class="mask-btn mask-btn-warning"
+                @click="runSelectedAction"
+            >
+                Run
+            </button>
+        </div>
+
+        <div class="mask-action-popup__footer">
+            <button
+                v-if="canSelectAcross"
+                type="button"
+                class="mask-btn mask-btn-primary"
+                @click="selectAcrossPages"
+            >
+                Select all datas
+            </button>
+
+            <button
+                type="button"
+                class="mask-btn mask-btn-secondary"
+                @click="clearActionSelection"
+            >
+                Cancel
+            </button>
+        </div>
+    </div>
+
     <!-- MODAL POPUP FILTER KUSTOM (VUE VERSION) -->
     <div v-if="showFilterModal" class="mask-modal-overlay" @click.self="closeFilterModal">
         <div class="mask-modal-container mask-filter-container">
@@ -160,7 +231,7 @@
             </div>
             <div class="mask-modal-footer" style="padding: 16px 24px; background: #0f172a; display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
                 <button type="button" @click="closeFilterModal" class="mask-btn mask-btn-secondary">Cancel</button>
-                <a href="?" class="mask-btn mask-btn-warning">Reset</a>
+                <a href="?" class="mask-btn mask-btn-warning" v-if="activeFilterCount">Reset</a>
                 <button type="button" @click="performFilter" class="mask-btn mask-btn-primary">Filter</button>
             </div>
         </div>
@@ -181,6 +252,18 @@
             const themeName = ref('');
             const hasAddLink = ref('');
 
+            // konfigurasi actions
+            const showActionPopup = ref(false);
+            const actionOptions = ref([]);
+            const selectedAction = ref('');
+            const selectedSummary = ref('');
+            const isAcrossSelected = ref(false);
+            const canSelectAcross = ref(false);
+
+            let actionObserver = null;
+
+
+            const isLogin = ref(false);
             // Konfigurasi State Filter
             const hasFilters = ref(false);
             const activeFilterCount = ref(0);
@@ -591,18 +674,160 @@
             });
 
             const getThemeName = () => {
-                nextTick(() => {
-                    const savedTheme = localStorage.getItem('theme');
-                    const theme = (savedTheme || '').toLowerCase();
+                const savedTheme = localStorage.getItem('theme');
+                const theme = (savedTheme || '').toLowerCase();
 
-                    if (theme === 'dark') {
-                        themeName.value = 'Dark';
-                    } else if (theme === 'light') {
-                        themeName.value = 'Light';
-                    } else {
-                        themeName.value = 'System';
+                if (theme === 'dark') {
+                    themeName.value = 'Dark';
+                } else if (theme === 'light') {
+                    themeName.value = 'Light';
+                } else {
+                    themeName.value = 'System';
+                }
+            };
+
+            const getActionElements = () => ({
+                form: document.querySelector('#changelist-form'),
+                actions: document.querySelector('#changelist-form .actions'),
+                actionSelect: document.querySelector(
+                    '#changelist-form select[name="action"]'
+                ),
+                headerCheckbox: document.querySelector('#action-toggle'),
+                checkboxes: Array.from(
+                    document.querySelectorAll(
+                        '#result_list input.action-select'
+                    )
+                ),
+                acrossInput: document.querySelector(
+                    '#changelist-form input.select-across'
+                )
+            });
+
+            const syncActionPopup = () => {
+                const el = getActionElements();
+
+                if (!el.form || !el.actions || !el.actionSelect) {
+                    showActionPopup.value = false;
+                    return;
+                }
+
+                actionOptions.value = Array.from(el.actionSelect.options).map(option => ({
+                    value: option.value,
+                    label: option.textContent.trim()
+                }));
+
+                // Sinkronkan dropdown popup dengan dropdown Django.
+                selectedAction.value = el.actionSelect.value;
+
+                const counter = el.actions.querySelector('.action-counter');
+                const allLabel = el.actions.querySelector('.all');
+                const question = el.actions.querySelector('.question');
+                const across = el.acrossInput?.value === '1';
+
+                isAcrossSelected.value = across;
+
+                selectedSummary.value = across
+                    ? (allLabel?.textContent.trim() || 'All results selected')
+                    : (counter?.textContent.trim() || '');
+
+                const checkedCount = el.checkboxes.filter(
+                    checkbox => checkbox.checked
+                ).length;
+
+                const headerChecked = Boolean(el.headerCheckbox?.checked);
+                const hasSelection = checkedCount > 0 || across;
+
+                showActionPopup.value = hasSelection;
+
+                // Tampilkan opsi lintas halaman hanya ketika ada seleksi
+                // pada halaman dan Django menyediakan link Select all.
+                canSelectAcross.value = Boolean(
+                    headerChecked &&
+                    !across &&
+                    question &&
+                    !question.classList.contains('hidden') &&
+                    question.querySelector('a')
+                );
+            };
+
+            const changeAction = value => {
+                const el = getActionElements();
+
+                if (!el.actionSelect) return;
+
+                el.actionSelect.value = value;
+                selectedAction.value = value;
+            };
+
+            const runSelectedAction = () => {
+                const el = getActionElements();
+
+                if (!el.form || !el.actionSelect) return;
+
+                el.actionSelect.value = selectedAction.value;
+
+                // Validasi: wajib memilih action sebelum submit.
+                if (!selectedAction.value) {
+                    el.actionSelect.focus();
+                    return;
+                }
+
+                // Gunakan tombol Go asli agar perilaku Django tetap terjaga.
+                const goButton = el.actions?.querySelector(
+                    'button[name="index"], input[name="index"]'
+                );
+
+                if (goButton) {
+                    goButton.click();
+                } else {
+                    el.form.requestSubmit();
+                }
+            };
+
+            const selectAcrossPages = () => {
+                const el = getActionElements();
+                const selectAllLink = el.actions?.querySelector(
+                    '.question a'
+                );
+
+                if (selectAllLink && canSelectAcross.value) {
+                    // Memanggil handler bawaan Django Admin.
+                    selectAllLink.click();
+                    syncActionPopup();
+                }
+            };
+
+            const clearActionSelection = () => {
+                const el = getActionElements();
+
+                if (!el.form) return;
+
+                const clearLink = el.actions?.querySelector('.clear a');
+
+                if (isAcrossSelected.value && clearLink) {
+                    // Biarkan Django mengatur ulang select_across dan statusnya.
+                    clearLink.click();
+                } else {
+                    el.checkboxes.forEach(checkbox => {
+                        checkbox.checked = false;
+                        checkbox.dispatchEvent(
+                            new Event('change', { bubbles: true })
+                        );
+                    });
+
+                    if (el.headerCheckbox) {
+                        el.headerCheckbox.checked = false;
+                        el.headerCheckbox.dispatchEvent(
+                            new Event('change', { bubbles: true })
+                        );
                     }
-                });
+
+                    if (el.acrossInput) {
+                        el.acrossInput.value = '0';
+                    }
+                }
+
+                syncActionPopup();
             };
 
             watch(searchQuery, () => {
@@ -617,7 +842,7 @@
                   initFilterData();
                 }, 50)
             }
-            const prepareIcons = async () => {
+            const prepareMenuIcons = async () => {
                 const [currentMenuIconBox] = await Promise.all([
                     waitForElement('.current-menu-icon-box'),
                 ])
@@ -631,15 +856,77 @@
                 }
                 lucide.createIcons();
             }
+
+            const prepareActions = async () => {
+                const form = await waitForElement('#content-main #changelist #changelist-form');
+                if (!form) return;
+                const actions = form?.querySelector('.actions');
+                if (!actions) return;
+
+                // Delegasi event karena elemen Django dikelola oleh Django.
+                form.addEventListener('change', syncActionPopup);
+                form.addEventListener('click', event => {
+                    if (
+                        event.target.closest(
+                            '.question a, .clear a, #action-toggle, .action-select'
+                        )
+                    ) {
+                        // Sinkronisasi setelah handler Django memproses klik.
+                        requestAnimationFrame(syncActionPopup);
+                    }
+                });
+
+                actionObserver = new MutationObserver(syncActionPopup);
+                actionObserver.observe(actions, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                    attributes: true
+                });
+
+                syncActionPopup();
+            }
+            const prepareCancelButton = async () => {
+                let href = location.pathname;
+                if (href.endsWith('/')) {
+                    href = href.substring(0, href.length - 1);
+                }
+                if (href.endsWith('add')) {
+                    href = href.substring(0, href.lastIndexOf('/'));
+                } else {
+                    href = href.substring(0, href.lastIndexOf('/'));
+                    href = href.substring(0, href.lastIndexOf('/'));
+                }
+
+                const submitRow = await waitForElement('.submit-row');
+                if (!submitRow) return;
+                const cancelButton = document.createElement('a');
+                cancelButton.href = href;
+                cancelButton.className = 'mask-btn mask-btn-warning';
+                cancelButton.textContent = 'Cancel';
+                submitRow.appendChild(cancelButton);
+            };
+            const preparePortal = async () => {
+                const body = await waitForElement('body.login');
+                if (body) {
+                    isLogin.value = true;
+                }
+                if (!isLogin) {
+                }
+            }
             onMounted(() => {
+                // preparePortal();
                 getThemeName();
+                prepareActions();
                 extractBreadcrumbs();
                 prepareFilterData();
                 prepareButtons();
-                prepareIcons();
+                prepareMenuIcons();
+                prepareCancelButton();
             });
 
             return {
+                isLogin,
                 isMenuOpen,
                 showModal,
                 showFilterModal,
@@ -663,7 +950,17 @@
                 toggleMenu,
                 openShowAllMenu,
                 closeModal,
-                openThemeSwitcher
+                openThemeSwitcher,
+                showActionPopup,
+                actionOptions,
+                selectedAction,
+                selectedSummary,
+                isAcrossSelected,
+                canSelectAcross,
+                changeAction,
+                runSelectedAction,
+                selectAcrossPages,
+                clearActionSelection
             };
         }
     }).mount('#mask-app');
