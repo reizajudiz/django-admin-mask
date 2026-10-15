@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "django-admin-mask"
 version = "0.1.0"
@@ -7,11 +11,21 @@ requires-python = ">=3.13"
 dependencies = [
     "django==5.2.17",
 ]
+
 [tool.hatch.build.targets.wheel]
 packages = ["admin_mask"]
-artifacts = [
-    "admin_mask/templates/**/*",
-    "admin_mask/templates/**/**/*",
-    "admin_mask/static/**/*"
-    "admin_mask/static/**/**/*"
+include = [
+    "admin_mask/static/**",
+    "admin_mask/templates/**",
 ]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/admin_mask",
+]
+exclude = [
+    "*.pyc",
+    "__pycache__",
+    ".git*",
+]
+
